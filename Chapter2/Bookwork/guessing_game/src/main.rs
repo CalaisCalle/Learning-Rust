@@ -2,6 +2,7 @@ use rand::Rng;
 use std::cmp::Ordering;
 use std::io;
 
+// Get the user to guess a number
 fn main() {
     println!("Guess the number!");
 
