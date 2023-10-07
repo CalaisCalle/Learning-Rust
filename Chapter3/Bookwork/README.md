@@ -229,3 +229,223 @@ If not certain - use the defaults (`i32` for ints)
 >  - return `None` if there is an overflow with `checked_*` methods.
 >  - Return the value and a boolean indicating an overflow with `overflowing_*` methods.
 >  - Saturate at the values min/maxmimum with `saturating_*` methods. 
+
+#### Floating-Point Types
+
+Rust has two types of floating-point numbers (numbers with decimal points): `f32` and `f64`.
+These are 32 and 64 bits in size, respectively.
+The default type is `f64`: on modern CPUs, it's roughly the same speed as `f32` but it has higher precision.
+All floating-point types are signed.
+
+Simple example:
+```rust
+fn main() {
+    let x = 2.0; // f64
+
+    let y: f32 = 3.0; // f32
+}
+```
+
+These are represented according to the IEEE-754 standard: `f32` is a single precision float, and `f64` has double precision.
+
+#### Numeric Operations
+
+Rust supports the basic numeric operations:
+ - Addition
+ - Subtraction
+ - Multiplication
+ - Division
+ - Remainder
+
+This code shows how to use these with a let statement:
+```rust
+  // addition
+  let sum = 5 + 10;
+
+  // subtraction
+  let difference = 95.5 - 4.3;
+
+  // multiplication
+  let product = 4 * 30;
+
+  // division
+  let quotient = 56.7 / 32.2;
+  let truncated = -5 / 3; // Results in -1
+
+  // remainder
+  let remainder = 43 % 5;
+```
+
+Each expression in these statements uses a mathematical operator and evaluates to a single value.
+
+
+#### The Boolean Type
+
+Rust also has a Boolean type with two values: `true` and `false`.
+They are one byte in size and specified by the `bool` keyword:
+
+```rust
+fn main() {
+    let t = true;
+
+    let f: bool = false; // with explicit type annotation
+}
+```
+
+The most common use of Booleans is in conditionals, such as the `if` expression.
+
+#### The Character type
+
+Rust's `char` type is the most primitive alphabetic type:
+```rust
+fn main() {
+    let c = 'z';
+    let z: char = 'ℤ'; // with explicit type annotation
+    let heart_eyed_cat = '😻';
+}
+```
+
+`char` values are specified with single quotes (strings are specified using double quotes).
+It is four bytes in size and represents a Unicode Scalar Value, allowing it to represent more than just ASCII.
+Unicode Scalar values range from `U+0000` to `U+D7FF` and `U+E000` to `U+10FFFF` inclusive.
+"Characters" aren't a concept in Unicode, so intuition for what should be a character may not match Rust.
+
+### Compound Types
+
+*Compound Types* can group multiple values into one type.
+Rust has two primitive compound types: `tuple`s and `array`s.
+
+#### The Tuple Type
+
+A `tuple` is a general way of grouping together a number of values with variable types.
+A declared tuple has a fixed length: once declared, it cannot grow or shrink in size.
+
+Tuples are created by writing a comma-separated list of values inside parentheses.
+Each value has a type, and the types of the different values in the tuple can be different.
+E.g. with optional annotations:
+
+```rust
+fn main() {
+    let tup: (i32, f64, u8) = (500, 6.4, 1);
+}
+```
+
+`tup` binds to the entire tuple, as it is considered a single element.
+Individual values in the tuple can be retrieved using pattern matching:
+```rust
+fn main() {
+    let tup = (500, 6.4, 1);
+
+    let (x, y, z) = tup;
+
+    println!("The value of y is: {y}");
+}
+```
+This is called destructuring as it breaks the tuple into 3 parts.
+Individual tuple elements can be accessed directly using a period followed by the index of the value desired:
+
+```rust
+fn main() {
+    let x: (i32, f64, u8) = (500, 6.4, 1);
+
+    let five_hundred = x.0;
+
+    let six_point_four = x.1;
+
+    let one = x.2;
+}
+```
+
+A tuple with no values is called a *unit*, written as `()`.
+A unit represents an empty value or empty return type.
+Expressions implicitly return the unit value if they don't return any other value.
+
+#### The Array Type
+
+Another way of storing a selection of values.
+Unlike a Tuple, every element in an array must be the same type.
+Unlike arrays in other languages, arrays in Rust have a fixed type.
+They are declared as a comma-separated list inside square brackets:
+
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+}
+```
+
+They are useful when storing data on the stack rather than the heap (discussion in Chapter 4)
+Or when you want to ensure you always have a fixed number of elements.
+
+An array isn't as flexible as the standard library's `vector` type.
+A `vector` is similar to an array, but it *is* allowed to grow or shrink.
+If it's not clear if an array or vector is better suited for storing data, it's usually better to use a vector.
+Arrays are more useful when the number of elements will not need to change.
+E.g., when using names of the month.
+
+The type and number of elements can be declared like so:
+
+```rust
+let a: [i32; 5] = [1, 2, 3, 4, 5];
+```
+
+Here, `i32` is the type, and `5` is the size.
+
+An array can also be initialised to contain the same value for each element by specifying the initial value, a semicolon, then the length of the array:
+
+##### Accessing Array Elements
+
+An array is a single chunk of memory of known, fixed size.
+Elements of the array can be accessed by index:
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    let first = a[0];
+    let second = a[1];
+}
+```
+
+Array indexing starts at 0, so `first` will be given the value `1`.
+
+##### Invalid Array Element Access
+
+Using this code to access elements in an array:
+use std::io;
+
+```rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    println!("Please enter an array index.");
+
+    let mut index = String::new();
+
+    io::stdin()
+        .read_line(&mut index)
+        .expect("Failed to read line");
+
+    let index: usize = index
+        .trim()
+        .parse()
+        .expect("Index entered was not a number");
+
+    let element = a[index];
+
+    println!("The value of the element at index {index} is: {element}");
+}
+```
+
+The above will compile successfully, but if an invalid index is given, an error will occur:
+
+```bash
+thread 'main' panicked at 'index out of bounds: the len is 5 but the index is 10', src/main.rs:19:19
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+The program results in a runtime error at the point of using an invalid value.
+Rust will check that the index specified is less than the array length.
+If the index is greater, then Rust will panic.
+This check must happen at runtime, as the compiler cannot know what value the user can enter.
+
+This is an example of Rust's memory safety principles.
+In many low-level languages, this check isn't done, allowing invalid memory to be accessed.
