@@ -1,3 +1,5 @@
+use std::io;
+
 fn main() {
     // parse can return different data types
     // variable assignment must be annotated.
