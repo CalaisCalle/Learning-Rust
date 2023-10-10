@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::f64;
 use std::io;
 
@@ -30,15 +31,24 @@ fn main() {
 
     println!("a = {}, b = {}, c = {}", a, b, c);
 
-    let determinant = b.powi(2) - 4_f64 * a * c;
+    let discriminant: f64 = b.powi(2) - 4_f64 * a * c;
 
-    if determinant < 0_f64 {
-        println!("No real solutions!");
-        return;
+    println!("{discriminant}");
+    match discriminant.partial_cmp(&0_f64).expect("NaN!") {
+        Ordering::Less => {
+            println!("No real solutions!");
+        }
+        Ordering::Greater => {
+            println!("At least two solutions:");
+            let root_d = discriminant.sqrt();
+            let result1 = (-b + root_d) / (2_f64 * a);
+            let result2 = (-b - root_d) / (2_f64 * a);
+            println!("Results: {}, {}", result1, result2);
+        }
+        Ordering::Equal => {
+            println!("One Solution:");
+            let result = -b / (2.0 * a);
+            println!("Result: {result}");
+        }
     }
-
-    let result1 = (-b + determinant) / (2_f64 * a);
-    let result2 = (-b - determinant) / (2_f64 * a);
-
-    println!("Results: {}, {}", result1, result2);
 }
