@@ -3,6 +3,7 @@ use std::io;
 fn main() {
     let mut user_input = String::new();
 
+    // Loop until the user enters a correct value.
     let f: f64 = loop {
         println!("Enter a temperature in Fahrenheit");
 
