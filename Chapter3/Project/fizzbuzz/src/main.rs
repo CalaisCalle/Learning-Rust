@@ -1,20 +1,21 @@
 fn main() {
-    let mut out = String::new();
-    
-    for num in 1..100 {
-        out.clear();
+    for num in 1..=100 {
+        let mut printed: bool = false;
+
         if num % 3 == 0 {
-            out.push_str("Fizz");
+            print!("Fizz");
+            printed = true;
         }
         if num % 5 == 0 {
-            out.push_str("Buzz");
+            print!("Buzz");
+            printed = true;
         }
         
-        if out.len() == 0 {
+        if !printed {
             println!("{num}");
             continue;
         }
 
-        println!("{out}");
+        println!();
     }
 }
