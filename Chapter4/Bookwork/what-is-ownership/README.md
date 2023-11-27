@@ -59,3 +59,159 @@ let s = "hello";
         // do stuff with s
     }                      // this scope is now over, and s is no longer valid
 ```
+
+## The `String` Type
+
+A more complex type than those covered in *Data Types* is required to illustrate ownership rules.
+Those types were of a known size and so easy to store on and pop off the stack when the scope is over.
+It's also trivial to copy basic types to make a new, independent instance if the same value needs to be used in a different scope.
+`String` is an example of a type whose data is stored on the heap and makes a good example.
+
+String literals (which have a fixed size and can be stored on the stack) aren't suitable for every situation.
+Not every string value can be known, and the literals themselves are immutable.
+For example, the program cannot know user input at compile time.
+These situations are why the `String` type exists.
+The `String` type manages heap-allocated data, and so can store text of an unknown size.
+A `String` can be created from a string literal using the `from` function:
+
+```rust
+    let s = String::from("hello");
+```
+
+`::` operators access the namespace of the left operand (`String` in this instance) and access the function or property (right operand).
+This is discussed more in Chapter 5, under "Method Syntax".
+
+A `String` can be mutated:
+
+```rust
+    let mut s = String::from("hello");
+    
+    s.push_str(", world!");
+    
+    println!("{}", s);
+    
+```
+
+This will output `hello, world!`.
+
+Unlike a string literal, a `String` can be mutated.
+This is down to the differences in how each type deals with memory.
+
+## Memory and Allocation
+
+The size of a string literal is known at compile time, so the text can be hardcoded into the final executable.
+This makes them fast and efficient, but this stems from the literal's immutability.
+The compiler can't put a blob of memory into the binary for each piece of text of unknown, mutable size.
+
+The `String` type must allocate an amount of meory on the heap, unknown at compile time.
+As such:
+ - The memory must be requested from the allocator at runtime
+ - There must be a way of returning this memory to the allocator when the program finishes with the `String`.
+
+`String::from` requests the memory required when called - this is pretty universal in programming languages.
+In some languages with *Garbage Collectors (GCs)*, the GC keeps track of and cleans up unused memory.
+In languages without a GC, it is the programmers responsibility to identify when memory is no longer in use and call code to explicitly free it.
+This has historically been a challenging problem to solve.
+Done too early, and the program will be left with an invalid variable.
+If it's allocated twice, that's also a bug.
+One `allocate` must be paired with exactly one `free`.
+
+Rust chooses instead to return the memory automatically once the owning variable goes out of scope.
+
+```Rust
+    {
+        let s = String::from("hello");
+
+        // Do stuff with S
+    }
+```
+
+The natural point to return the memory to the allocator occurs when `s` goes out of scope.
+When a variable goes out of scope, Rust calls a special function called `drop`, where the author of `String` can put the code to return the memory.
+Rust calls `drop` automatically at the closing curly bracket (end of the scope).
+
+ - N.B: In C++, this pattern of deallocating resources at the end of an objects lifetime is called Resource Acquisition Is Initialisation (RAII).
+
+This pattern is simple, but has large ramifications.
+Unexpected behaviour can occur in more complicated situations where multiple variables need to use heap-allocated data.
+
+## Variables and Data Interacting with Move
+
+Multiple variables can interact with the same data in different ways in rust.
+For example, with integers:
+
+```rust
+    let x = 5;
+    let y = x;
+```
+
+This binds a value of 5 to the variable x, then makes a copy of the value in x and assigns that value to y.
+There are now two variables equal to 5, which is possible because an integer is a simple type of a fixed size.
+The two values of 5 are both pushed onto the stack.
+
+Now, the string version:
+
+```rust
+    let s1 = String::from("hello");
+    let s2 = s1;
+```
+
+This looks similar, but behaves differently.
+`let s2 = s1` does not make a copy of the value in `s1.
+Understanding what is happening requires an understanding of what's happening at a lower level.
+
+A `String` is made up of three parts: a pointer to memory on the heap that holds the contents of the string; a length; and a capacity. This data is stored on the stack.
+The length is the amount of memory, in bytes, occupied by the contents of the `String`.
+The capacity is the total memory, in bytes, that has been received by the allocator.
+The difference between length and capacity matters, but not right now.
+
+When `S1` is copied into `S2`, the `String` data is copied: the pointer, len, and capacity.
+The data on the heap is not copied, so `s1` and `s2` both point to the same memory.
+If Rust did copy the memory on the heap as well as the memory on the stack, the cost of the operation would be much greater.
+
+When a variable goes out of scope, Rust calls the `drop` function and cleans up the memory pointed to by that variable.
+But both `s1` and `s2` point to the same memory, so when they go out of scope, the both try to free the same memory.
+This is called a `double free` error and is a major memory safety bug that can lead to memory corruption, and lead to security vulnerabilities.
+
+To ensure memory safety, after the line `let s2 = s1;`, rust considers `s1` as no longer valid.
+Thus, `s1` cannot be used after this assignment:
+
+```rust
+    let s1 = String::from("hello");
+    let s2 = s1;
+
+    println!("{}, world!", s1);
+```
+
+causes an error:
+```
+$ cargo run
+   Compiling ownership v0.1.0 (file:///projects/ownership)
+error[E0382]: borrow of moved value: `s1`
+ --> src/main.rs:5:28
+  |
+2 |     let s1 = String::from("hello");
+  |         -- move occurs because `s1` has type `String`, which does not implement the `Copy` trait
+3 |     let s2 = s1;
+  |              -- value moved here
+4 |
+5 |     println!("{}, world!", s1);
+  |                            ^^ value borrowed here after move
+  |
+  = note: this error originates in the macro `$crate::format_args_nl` which comes from the expansion of the macro `println` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider cloning the value if the performance cost is acceptable
+  |
+3 |     let s2 = s1.clone();
+  |                ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `ownership` due to previous error
+```
+
+The concept of copying only the pointer, length, and capacity, without copying the data, probably sounds like a shallow copy.
+But Rust also invalidates the first variable, making this a `move`.
+In this example, `s1` is said to have been `moved` into `s2`.
+
+Since only `s2` is valid when it goes out of scope, it alone will free the memory.
+There is also a design choice implied here: **Rust will never automatically create a deep copy** of the program data.
+Therefore, any *automatic* copying can be assumed to be inexpensive.
