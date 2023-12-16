@@ -215,3 +215,6 @@ In this example, `s1` is said to have been `moved` into `s2`.
 Since only `s2` is valid when it goes out of scope, it alone will free the memory.
 There is also a design choice implied here: **Rust will never automatically create a deep copy** of the program data.
 Therefore, any *automatic* copying can be assumed to be inexpensive.
+
+## Variables and Interacting with Clone
+
