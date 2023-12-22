@@ -218,3 +218,111 @@ Therefore, any *automatic* copying can be assumed to be inexpensive.
 
 ## Variables and Interacting with Clone
 
+A method called `clone` can be used to make a deep-copy of the heap data of the string.
+(Method syntax will be discussed in chapter 5)
+
+When `clone` is called, it indicates that some arbritrary code is being executed and that the code may be more expensive.
+It's a visual indicator that something is going on.
+
+## Stack-Only Data: Copy
+
+Stack-only data consists of variables of a fixed, known size at compile time (e.g. integers and floats).
+```rust
+  let x = 5;
+  let y = x;
+
+  println!("{x}, {y}");
+```
+Copies of this data are quick and easy to make, so there's no reason to invalidate `x` when `y` is created.
+There is no difference between shallow and deep copying here, so `clone` wouldn't do anything and it can be left out.
+
+Rust has a special annotation called the `Copy` trait that can be placed on stack-only data.
+When implemented, variables that use it do not move, but are copied.
+
+Rust will not allow implementation of `Copy` is the type or any part of the type implements `Drop`.
+If the type needs something special to happen when it goes out of scope, then adding `Copy` will cause a compile-time error.
+Adding the `Copy` annotation to the a custom type is covered in the `Derivable Types` section of Appendix C.
+
+Checking the documentation is the best way of checking whether a type implements `Copy` or not.
+As a general rule, any group of simple Scalar values can implement `Copy`, but nothing that requires allocation can.
+Some types that can implement `Copy` include:
+
+ - All integer types (e.g. `u32`)
+ - The Boolean type
+ - All floating-point types (e.g. `f64`)
+ - The `char` type
+ - Tuples, if they only contain types that can implement `Copy`.
+
+## Ownership and Functions
+
+Passing a variable to a function will move or copy, just as assignment does. 
+The following code provides an example:
+
+```rust
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{}", some_string);
+} // Here, some_string goes out of scope and `drop` is called. The backing
+  // memory is freed.
+  
+fn makes_copy(some_integer: i32) {
+  println!("{some_integer}");
+} // Integer goes out of scope, Nothing special happens.
+
+fn main() {
+  let s = String::from("hello");
+
+  takes_ownership(s);
+
+  let x = 5;
+
+  makes_copy(5);
+}
+```
+
+If `s` was used in `main` after `takes_ownership` had been called, Rust would throw a compile-time error.
+Static checks performed on the code at compile-time help prevent mistakes.
+
+## Returning Values and Scope
+
+Returning values can also transfer ownership:
+
+```rust
+fn main() {
+    let s1 = gives_ownership();         // gives_ownership moves its return
+                                        // value into s1
+
+    let s2 = String::from("hello");     // s2 comes into scope
+
+    let s3 = takes_and_gives_back(s2);  // s2 is moved into
+                                        // takes_and_gives_back, which also
+                                        // moves its return value into s3
+} // Here, s3 goes out of scope and is dropped. s2 was moved, so nothing
+  // happens. s1 goes out of scope and is dropped.
+
+fn gives_ownership() -> String {             // gives_ownership will move its
+                                             // return value into the function
+                                             // that calls it
+
+    let some_string = String::from("yours"); // some_string comes into scope
+
+    some_string                              // some_string is returned and
+                                             // moves out to the calling
+                                             // function
+}
+
+// This function takes a String and returns one
+fn takes_and_gives_back(a_string: String) -> String { // a_string comes into
+                                                      // scope
+
+    a_string  // a_string is returned and moves out to the calling function
+}
+```
+
+Ownership of a variable follows the same pattern every time: assignment moves the variable.
+When a variable that includes heap-data goes out of scope, that data is cleaned out by `Drop` unless ownership has been moved to another variable.
+
+Taking and returning ownership with every function is a bit tedious.
+How could a function use a variable without moving it?
+Rust does allow functions to return multiple values in a tuple, so a return value could be coupled with the borrowed value.
+
+However, Rust has a more elegant answer to this: References.
